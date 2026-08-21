@@ -13,7 +13,7 @@ const (
 // ValidRecordingStatus 校验录音状态是否合法。
 func ValidRecordingStatus(status string) bool {
 	switch status {
-	case RecordingStatusRecording, RecordingStatusProcessing, RecordingStatusReady, RecordingStatusFailed:
+	case RecordingStatusRecording, RecordingStatusProcessing, RecordingStatusReady, RecordingStatusFailed, RecordingStatusRetrying:
 		return true
 	default:
 		return false
@@ -21,16 +21,20 @@ func ValidRecordingStatus(status string) bool {
 }
 
 // CanTransitionRecording 返回录音状态流转是否允许。
+// failed -> retrying：处理失败后重新入队；
+// retrying -> ready：重试音频关联成功即就绪。
 func CanTransitionRecording(from, to string) bool {
 	switch from {
 	case RecordingStatusRecording:
 		return to == RecordingStatusProcessing
 	case RecordingStatusProcessing:
-		return to == RecordingStatusReady
+		return to == RecordingStatusReady || to == RecordingStatusFailed || to == RecordingStatusRetrying
 	case RecordingStatusReady:
 		return to == RecordingStatusFailed
 	case RecordingStatusFailed:
-		return false
+		return to == RecordingStatusRetrying
+	case RecordingStatusRetrying:
+		return to == RecordingStatusReady || to == RecordingStatusFailed
 	default:
 		return false
 	}

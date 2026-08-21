@@ -152,7 +152,10 @@ func (s *recordingService) AttachAudio(actor *model.User, id uint, audioKey stri
 	if duration > 0 {
 		recording.DurationSeconds = duration
 	}
-	if recording.Status == constants.RecordingStatusRecording || recording.Status == constants.RecordingStatusProcessing || recording.Status == constants.RecordingStatusRetrying {
+	// retrying 录音重新关联音频即就绪；recording/processing 录音关联后进入处理中等待转码。
+	if recording.Status == constants.RecordingStatusRetrying {
+		recording.Status = constants.RecordingStatusReady
+	} else if recording.Status == constants.RecordingStatusRecording || recording.Status == constants.RecordingStatusProcessing {
 		recording.Status = constants.RecordingStatusProcessing
 	}
 	if err := s.recordingRepo.Update(recording); err != nil {
@@ -186,9 +189,15 @@ func (s *recordingService) Retry(actor *model.User, id uint) (*model.Recording, 
 	if err != nil {
 		return nil, util.NewAppError(constants.CodeNotFound, fmt.Sprintf("录音 %d 不存在", id), err)
 	}
-	recording.Status = constants.RecordingStatusProcessing
-	if err := s.recordingRepo.Update(recording); err != nil {
+	target := constants.RecordingStatusRetrying
+	if !constants.CanTransitionRecording(recording.Status, target) {
+		return nil, util.NewAppError(constants.CodeRecordingStatus,
+			fmt.Sprintf("录音 %d 状态不允许从 %s 重试", id, recording.Status), nil)
+	}
+	recording.Status = target
+	if err := s.recordingRepo.UpdateStatus(recording); err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, fmt.Sprintf("录音 %d 重试失败", id), err)
 	}
+	s.logger.Info(fmt.Sprintf(constants.LogRecordingStatus, actor.Username, recording.ID, recording.Status, target))
 	return recording, nil
 }
