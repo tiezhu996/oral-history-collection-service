@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -40,11 +41,14 @@ func ParseToken(tokenString, secret string) (*Claims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("parse token: %v", err)
+		return nil, fmt.Errorf("parse token: %w", err)
 	}
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
-		return nil, fmt.Errorf("invalid token")
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, fmt.Errorf("parse token: %w", err)
+		}
+		return nil, fmt.Errorf("invalid token: %w", err)
 	}
 	return claims, nil
 }
