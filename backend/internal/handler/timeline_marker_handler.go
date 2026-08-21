@@ -69,6 +69,9 @@ func (h *TimelineMarkerHandler) List(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	if markers == nil {
+		markers = make([]model.TimelineMarker, 0)
+	}
 	util.OK(c, gin.H{"list": markers})
 }
 
@@ -123,14 +126,13 @@ func (h *TimelineMarkerHandler) Group(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var grouped map[uint]map[int]model.TimelineMarker
 	grouped, err := h.markerSvc.GroupByRecording(projectID)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 	if len(grouped) == 0 {
-		grouped = nil
+		grouped = map[uint]map[int]model.TimelineMarker{}
 	}
 	util.OK(c, grouped)
 }
