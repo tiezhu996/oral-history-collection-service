@@ -75,6 +75,9 @@ func (s *timelineMarkerService) List(projectID, recordingID uint) ([]model.Timel
 	if err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, "时间轴节点查询失败", err)
 	}
+	if markers == nil {
+		markers = []model.TimelineMarker{}
+	}
 	return markers, nil
 }
 
@@ -117,16 +120,22 @@ func (s *timelineMarkerService) Delete(actor *model.User, id uint) error {
 }
 // GroupByRecording 按录音聚合时间轴节点（供时间轴面板使用）。
 func (s *timelineMarkerService) GroupByRecording(projectID uint) (map[uint]map[int]model.TimelineMarker, error) {
+	if _, err := s.projectRepo.FindByID(projectID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, util.NewAppError(constants.CodeNotFound, fmt.Sprintf("项目 %d 不存在", projectID), err)
+		}
+		return nil, util.NewAppError(constants.CodeInternal, fmt.Sprintf("查询项目 %d 失败", projectID), err)
+	}
 	markers, err := s.markerRepo.ListByProject(projectID)
 	if err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, "时间轴节点查询失败", err)
 	}
 	grouped := map[uint]map[int]model.TimelineMarker{}
 	for _, m := range markers {
+		if grouped[m.RecordingID] == nil {
+			grouped[m.RecordingID] = map[int]model.TimelineMarker{}
+		}
 		grouped[m.RecordingID][m.TimestampSecond] = m
-	}
-	if len(grouped) == 0 {
-		return nil, nil
 	}
 	return grouped, nil
 }
