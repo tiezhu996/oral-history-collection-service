@@ -173,6 +173,9 @@ func (h *RecordingHandler) UploadAudio(c *gin.Context) {
 	duration, _ := strconv.Atoi(c.PostForm("duration_seconds"))
 	recording, err := h.recordingSvc.AttachAudio(actor, id, objectKey, duration)
 	if err != nil {
+		if rmErr := h.storageSvc.Remove(c.Request.Context(), objectKey); rmErr != nil {
+			h.logger.Error("cleanup uploaded audio failed", "recording_id", id, "object_key", objectKey, "error", rmErr)
+		}
 		c.Error(err)
 		return
 	}

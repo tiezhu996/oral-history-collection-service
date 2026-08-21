@@ -65,7 +65,7 @@ func (s *storageService) Get(ctx context.Context, objectKey string) (*minio.Obje
 
 func (s *storageService) Remove(ctx context.Context, objectKey string) error {
 	if objectKey == "" {
-		return nil
+		return fmt.Errorf("remove object: empty object key")
 	}
 	if err := s.client.RemoveObject(ctx, s.bucket, objectKey, minio.RemoveObjectOptions{}); err != nil {
 		return fmt.Errorf("remove object %s: %w", objectKey, err)
