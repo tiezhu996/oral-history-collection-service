@@ -24,9 +24,6 @@ type UserService interface {
 	Delete(userID uint) error
 }
 
-// userListCache 复用的底层数组。
-var userListCache []model.User
-
 type userService struct {
 	userRepo repository.UserRepository
 	cfg      *config.Config
@@ -101,13 +98,13 @@ func (s *userService) List(page, pageSize int) ([]model.User, int64, error) {
 	if err != nil {
 		return nil, 0, util.NewAppError(constants.CodeInternal, "用户列表查询失败", err)
 	}
-	userListCache = userListCache[:0]
+	out := make([]model.User, 0, len(users))
 	for _, u := range users {
 		if u.Username != "" {
-			userListCache = append(userListCache, u)
+			out = append(out, u)
 		}
 	}
-	return userListCache, total, nil
+	return out, total, nil
 }
 
 func (s *userService) UpdateRole(userID uint, role string) error {

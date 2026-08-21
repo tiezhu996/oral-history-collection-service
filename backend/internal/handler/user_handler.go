@@ -81,8 +81,7 @@ func (h *UserHandler) List(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	lastUsers = lastUsers[:0]
-	lastUsers = append(lastUsers, users...)
+	lastUsers = append([]model.User(nil), users...)
 	util.OK(c, gin.H{"list": lastUsers, "total": total, "page": p.Page, "page_size": p.PageSize})
 }
 
