@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -28,7 +29,7 @@ func Audit(auditSvc service.AuditService, logger *slog.Logger) gin.HandlerFunc {
 		if c.Writer.Status() >= 400 {
 			detail = "status=" + itoa(c.Writer.Status())
 		}
-		auditSvc.Record(userID, username, role, action, "request", 0, detail, c.ClientIP(), RequestID(c))
+		auditSvc.RecordActive(context.Background(), userID, username, role, action, "request", 0, detail, c.ClientIP(), RequestID(c))
 		logger.Debug("audit middleware done", "path", c.FullPath(), "latency_ms", time.Since(start).Milliseconds())
 	}
 }
