@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/oralhistory/oralhistory/internal/constants"
 	"github.com/oralhistory/oralhistory/internal/model"
@@ -55,12 +56,20 @@ func (s *auditService) List(page, pageSize int, username string) ([]model.AuditL
 }
 // RecordActive 请求结束后按 ctx 生命周期记录审计。
 func (s *auditService) RecordActive(ctx context.Context, userID uint, username, role, action, entityType string, entityID uint, detail, ip, requestID string) {
+	if ctx == nil || ctx.Err() != nil {
+		s.logger.Warn("audit skipped after context cancel", "action", action, "request_id", requestID)
+		return
+	}
+	writeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
 	log := &model.AuditLog{
 		UserID: userID, Username: username, Role: role, Action: action,
 		EntityType: entityType, EntityID: entityID, Detail: detail, IP: ip, RequestID: requestID,
 	}
 	if err := s.auditRepo.Create(log); err != nil {
-		s.logger.Error("audit log record failed", "action", action, "error", err)
+		if writeCtx.Err() == nil {
+			s.logger.Error("audit log record failed", "action", action, "error", err)
+		}
 		return
 	}
 	s.logger.Info("audit recorded", "username", username, "action", action, "entity_type", entityType)

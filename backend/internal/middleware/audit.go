@@ -29,7 +29,16 @@ func Audit(auditSvc service.AuditService, logger *slog.Logger) gin.HandlerFunc {
 		if c.Writer.Status() >= 400 {
 			detail = "status=" + itoa(c.Writer.Status())
 		}
-		auditSvc.RecordActive(context.Background(), userID, username, role, action, "request", 0, detail, c.ClientIP(), RequestID(c))
+		if c.Request.Context().Err() == nil {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		writeCtx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		auditSvc.RecordActive(writeCtx, userID, username, role, action, "request", 0, detail, c.ClientIP(), RequestID(c))
+	}
 		logger.Debug("audit middleware done", "path", c.FullPath(), "latency_ms", time.Since(start).Milliseconds())
 	}
 }
