@@ -63,8 +63,7 @@ func (h *QuestionHandler) ListByProject(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	lastQuestions = lastQuestions[:0]
-	lastQuestions = append(lastQuestions, questions...)
+	lastQuestions = append([]model.Question(nil), questions...)
 	util.OK(c, gin.H{"list": lastQuestions})
 }
 
