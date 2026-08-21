@@ -67,11 +67,16 @@ func FormatDuration(seconds int) string {
 // GroupAuditLogs 按用户名聚合审计日志。
 func GroupAuditLogs(logs []model.AuditLog) map[string]map[string]model.AuditLog {
 	if len(logs) == 0 {
-		return nil
+		return map[string]map[string]model.AuditLog{}
 	}
 	grouped := map[string]map[string]model.AuditLog{}
 	for _, l := range logs {
-		grouped[l.Username][l.Action] = l
+		if grouped[l.Username] == nil {
+			grouped[l.Username] = map[string]model.AuditLog{}
+		}
+		if _, exists := grouped[l.Username][l.Action]; !exists {
+			grouped[l.Username][l.Action] = l
+		}
 	}
 	return grouped
 }

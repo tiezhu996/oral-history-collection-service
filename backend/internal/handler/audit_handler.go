@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/oralhistory/oralhistory/internal/dto"
+	"github.com/oralhistory/oralhistory/internal/model"
 	"github.com/oralhistory/oralhistory/internal/service"
 	"github.com/oralhistory/oralhistory/internal/util"
 )
@@ -32,6 +33,9 @@ func (h *AuditHandler) List(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	if logs == nil {
+		logs = make([]model.AuditLog, 0)
+	}
 	util.OK(c, gin.H{"list": logs, "total": total, "page": p.Page, "page_size": p.PageSize})
 }
 // Group 按用户名聚合审计日志。
@@ -46,9 +50,10 @@ func (h *AuditHandler) Group(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	total := len(logs)
 	grouped := util.GroupAuditLogs(logs)
-	if len(grouped) == 0 {
-		grouped = nil
+	if grouped == nil {
+		grouped = map[string]map[string]model.AuditLog{}
 	}
-	util.OK(c, gin.H{"groups": grouped})
+	util.OK(c, gin.H{"groups": grouped, "group_count": len(grouped), "total": total})
 }
