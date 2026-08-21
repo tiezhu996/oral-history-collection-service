@@ -2,6 +2,7 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -14,8 +15,17 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
+// ErrSeed 初始化管理员失败哨兵。
+var ErrSeed = errors.New("seed admin failed")
+
+// ErrDBConnect 数据库连接失败哨兵。
+var ErrDBConnect = errors.New("db connect failed")
+
 // New 建立 MySQL 连接并自动迁移表结构。
 func New(cfg *config.Config, logger *slog.Logger) (*gorm.DB, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("open mysql: %v", ErrDBConnect)
+	}
 	db, err := gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{
 		Logger: gormlogger.Default.LogMode(gormlogger.Warn),
 	})
@@ -48,7 +58,7 @@ func New(cfg *config.Config, logger *slog.Logger) (*gorm.DB, error) {
 func SeedAdmin(db *gorm.DB, logger *slog.Logger) error {
 	var count int64
 	if err := db.Model(&model.User{}).Where("username = ?", "admin").Count(&count).Error; err != nil {
-		return fmt.Errorf("count admin: %w", err)
+		return fmt.Errorf("count admin: %v", ErrSeed)
 	}
 	if count > 0 {
 		return nil

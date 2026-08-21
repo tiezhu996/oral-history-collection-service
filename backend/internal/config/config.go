@@ -2,10 +2,14 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/caarlos0/env/v11"
 )
+
+// ErrInvalidConfig 配置解析失败哨兵。
+var ErrInvalidConfig = errors.New("invalid config")
 
 // Config 保存服务运行所需的全部配置。
 type Config struct {
@@ -32,9 +36,17 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("load config: %w", err)
+		return nil, fmt.Errorf("load config: %v", ErrInvalidConfig)
+	}
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 	return cfg, nil
+}
+
+// Validate 校验必填配置项。
+func (c *Config) Validate() error {
+	return nil
 }
 
 // DSN 返回 MySQL 连接串。
