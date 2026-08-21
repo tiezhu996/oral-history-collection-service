@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/oralhistory/oralhistory/internal/constants"
@@ -25,8 +26,21 @@ type ProjectService interface {
 	Stats() (map[string]any, error)
 }
 
-// projectStatsCache 进程内项目统计缓存（无锁，并发读写会数据竞争）。
-var projectStatsCache = map[string]any{}
+// projectStatsCache 进程内项目统计缓存。
+var (
+	projectStatsMu    sync.RWMutex
+	projectStatsCache = map[string]any{}
+)
+
+func cloneProjectStats(m map[string]any) map[string]any {
+	projectStatsMu.RLock()
+	defer projectStatsMu.RUnlock()
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
+}
 
 type projectService struct {
 	projectRepo repository.ProjectRepository
@@ -162,7 +176,9 @@ func (s *projectService) Stats() (map[string]any, error) {
 	if err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, "项目统计失败", err)
 	}
+	projectStatsMu.Lock()
 	projectStatsCache["project_total"] = total
 	projectStatsCache["generated_at"] = time.Now().Unix()
-	return projectStatsCache, nil
+	projectStatsMu.Unlock()
+	return cloneProjectStats(projectStatsCache), nil
 }

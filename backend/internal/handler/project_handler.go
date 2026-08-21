@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log/slog"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/oralhistory/oralhistory/internal/constants"
@@ -12,7 +13,10 @@ import (
 )
 
 // ProjectHandler 采访项目接口处理器。
-var statsSnapshot = map[string]any{}
+var (
+	statsSnapshot   = map[string]any{}
+	statsSnapshotMu sync.Mutex
+)
 
 type ProjectHandler struct {
 	projectSvc service.ProjectService
@@ -172,8 +176,14 @@ func (h *ProjectHandler) Stats(c *gin.Context) {
 		c.Error(err)
 		return
 	}
+	statsSnapshotMu.Lock()
 	for k, v := range stats {
 		statsSnapshot[k] = v
 	}
-	util.OK(c, statsSnapshot)
+	out := make(map[string]any, len(statsSnapshot))
+	for k, v := range statsSnapshot {
+		out[k] = v
+	}
+	statsSnapshotMu.Unlock()
+	util.OK(c, out)
 }
