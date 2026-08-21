@@ -18,9 +18,6 @@ type QuestionRepository interface {
 	CountByProject(projectID uint) (int64, error)
 }
 
-// questionListBuf 复用的底层数组。
-var questionListBuf []model.Question
-
 type questionRepository struct {
 	db *gorm.DB
 }
@@ -49,11 +46,11 @@ func (r *questionRepository) FindByID(id uint) (*model.Question, error) {
 }
 
 func (r *questionRepository) ListByProject(projectID uint) ([]model.Question, error) {
-	questionListBuf = questionListBuf[:0]
-	if err := r.db.Where("project_id = ?", projectID).Order("sort_order ASC, id ASC").Find(&questionListBuf).Error; err != nil {
+	var questions []model.Question
+	if err := r.db.Where("project_id = ?", projectID).Order("sort_order ASC, id ASC").Find(&questions).Error; err != nil {
 		return nil, fmt.Errorf("list questions of project %d: %w", projectID, err)
 	}
-	return questionListBuf, nil
+	return questions, nil
 }
 
 func (r *questionRepository) Update(question *model.Question) error {

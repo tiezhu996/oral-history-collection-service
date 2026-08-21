@@ -13,7 +13,7 @@ import (
 )
 
 // QuestionHandler 采访问题接口处理器。
-// lastQuestions 最近一次列表结果。
+// lastQuestions 最近一次列表结果，每次调用重新分配以避免覆盖此前快照。
 var lastQuestions []model.Question
 
 type QuestionHandler struct {
@@ -63,8 +63,7 @@ func (h *QuestionHandler) ListByProject(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	lastQuestions = lastQuestions[:0]
-	lastQuestions = append(lastQuestions, questions...)
+	lastQuestions = append([]model.Question(nil), questions...)
 	util.OK(c, gin.H{"list": lastQuestions})
 }
 
