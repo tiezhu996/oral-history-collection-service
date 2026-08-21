@@ -23,8 +23,17 @@ func Auth(secret string, logger *slog.Logger) gin.HandlerFunc {
 		tokenStr := strings.TrimPrefix(header, "Bearer ")
 		claims, err := util.ParseToken(tokenStr, secret)
 		if err != nil {
-			logger.Warn("auth failed", "request_id", RequestID(c), "error", err)
-			util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, fmt.Sprintf("%s: 令牌无效或已过期", constants.MsgUnauthorized))
+			msg := err.Error()
+			if msg == "token is expired" {
+				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, "登录已过期，请重新登录")
+			} else if msg == "token is malformed" {
+				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, "令牌格式错误")
+			} else if msg == "token signature is invalid" {
+				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, "令牌签名无效")
+			} else {
+				logger.Warn("auth failed", "request_id", RequestID(c), "error", err)
+				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, fmt.Sprintf("%s: 令牌无效", constants.MsgUnauthorized))
+			}
 			c.Abort()
 			return
 		}
