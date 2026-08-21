@@ -36,7 +36,7 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("load config: %v", ErrInvalidConfig)
+		return nil, fmt.Errorf("load config: %w", ErrInvalidConfig)
 	}
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -46,6 +46,9 @@ func Load() (*Config, error) {
 
 // Validate 校验必填配置项。
 func (c *Config) Validate() error {
+	if c.JWTSecret == "" {
+		return fmt.Errorf("missing jwt secret: %w", ErrInvalidConfig)
+	}
 	return nil
 }
 

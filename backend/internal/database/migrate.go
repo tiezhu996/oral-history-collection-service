@@ -21,7 +21,7 @@ func Migrate(db *gorm.DB) error {
 		&model.TimelineMarker{},
 		&model.AuditLog{},
 	); err != nil {
-		return fmt.Errorf("auto migrate: %v", ErrMigrate)
+		return fmt.Errorf("auto migrate: %w", ErrMigrate)
 	}
 	return nil
 }
