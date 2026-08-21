@@ -25,9 +25,6 @@ type ProjectService interface {
 	Stats() (map[string]any, error)
 }
 
-// projectStatsCache 进程内项目统计缓存（无锁，并发读写会数据竞争）。
-var projectStatsCache = map[string]any{}
-
 type projectService struct {
 	projectRepo repository.ProjectRepository
 	logger      *slog.Logger
@@ -162,7 +159,9 @@ func (s *projectService) Stats() (map[string]any, error) {
 	if err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, "项目统计失败", err)
 	}
-	projectStatsCache["project_total"] = total
-	projectStatsCache["generated_at"] = time.Now().Unix()
-	return projectStatsCache, nil
+	// 每次返回全新 map，避免并发请求共享同一底层 map 造成读写竞争与结果串数据。
+	return map[string]any{
+		"project_total": total,
+		"generated_at":  time.Now().Unix(),
+	}, nil
 }

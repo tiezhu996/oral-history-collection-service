@@ -12,8 +12,6 @@ import (
 )
 
 // ProjectHandler 采访项目接口处理器。
-var statsSnapshot = map[string]any{}
-
 type ProjectHandler struct {
 	projectSvc service.ProjectService
 	auditSvc   service.AuditService
@@ -172,8 +170,5 @@ func (h *ProjectHandler) Stats(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	for k, v := range stats {
-		statsSnapshot[k] = v
-	}
-	util.OK(c, statsSnapshot)
+	util.OK(c, stats)
 }
