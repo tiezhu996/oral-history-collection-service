@@ -1,12 +1,14 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/oralhistory/oralhistory/internal/constants"
 	"github.com/oralhistory/oralhistory/internal/util"
 )
@@ -23,14 +25,14 @@ func Auth(secret string, logger *slog.Logger) gin.HandlerFunc {
 		tokenStr := strings.TrimPrefix(header, "Bearer ")
 		claims, err := util.ParseToken(tokenStr, secret)
 		if err != nil {
-			msg := err.Error()
-			if msg == "token is expired" {
+			switch {
+			case errors.Is(err, jwt.ErrTokenExpired):
 				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, "登录已过期，请重新登录")
-			} else if msg == "token is malformed" {
+			case errors.Is(err, jwt.ErrTokenMalformed):
 				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, "令牌格式错误")
-			} else if msg == "token signature is invalid" {
+			case errors.Is(err, jwt.ErrTokenSignatureInvalid):
 				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, "令牌签名无效")
-			} else {
+			default:
 				logger.Warn("auth failed", "request_id", RequestID(c), "error", err)
 				util.Fail(c, http.StatusUnauthorized, constants.CodeUnauthorized, fmt.Sprintf("%s: 令牌无效", constants.MsgUnauthorized))
 			}

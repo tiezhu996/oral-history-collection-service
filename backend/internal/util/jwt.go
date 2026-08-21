@@ -40,7 +40,7 @@ func ParseToken(tokenString, secret string) (*Claims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("parse token: %v", err)
+		return nil, fmt.Errorf("parse token: %w", err)
 	}
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
