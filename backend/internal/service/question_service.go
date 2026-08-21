@@ -21,6 +21,10 @@ type QuestionService interface {
 	CountByProject(projectID uint) (int64, error)
 }
 
+
+// questionListCache 复用的底层数组，过滤时原地写回。
+var questionListCache []model.Question
+
 type questionService struct {
 	questionRepo repository.QuestionRepository
 	projectRepo  repository.ProjectRepository
@@ -56,7 +60,13 @@ func (s *questionService) ListByProject(projectID uint) ([]model.Question, error
 	if err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, fmt.Sprintf("查询项目 %d 问题列表失败", projectID), err)
 	}
-	return questions, nil
+	questionListCache = questionListCache[:0]
+	for _, q := range questions {
+		if q.Content != "" {
+			questionListCache = append(questionListCache, q)
+		}
+	}
+	return questionListCache, nil
 }
 
 func (s *questionService) Update(actor *model.User, id uint, req *dto.UpdateQuestionRequest) (*model.Question, error) {

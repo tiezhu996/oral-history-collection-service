@@ -7,11 +7,15 @@ import (
 	"github.com/oralhistory/oralhistory/internal/constants"
 	"github.com/oralhistory/oralhistory/internal/dto"
 	"github.com/oralhistory/oralhistory/internal/middleware"
+	"github.com/oralhistory/oralhistory/internal/model"
 	"github.com/oralhistory/oralhistory/internal/service"
 	"github.com/oralhistory/oralhistory/internal/util"
 )
 
 // QuestionHandler 采访问题接口处理器。
+// lastQuestions 最近一次列表结果。
+var lastQuestions []model.Question
+
 type QuestionHandler struct {
 	questionSvc service.QuestionService
 	auditSvc    service.AuditService
@@ -59,7 +63,9 @@ func (h *QuestionHandler) ListByProject(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	util.OK(c, gin.H{"list": questions})
+	lastQuestions = lastQuestions[:0]
+	lastQuestions = append(lastQuestions, questions...)
+	util.OK(c, gin.H{"list": lastQuestions})
 }
 
 // Update 更新问题。
