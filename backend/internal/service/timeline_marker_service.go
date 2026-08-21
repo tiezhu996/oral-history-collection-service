@@ -17,6 +17,7 @@ type TimelineMarkerService interface {
 	Create(actor *model.User, req *dto.CreateTimelineMarkerRequest) (*model.TimelineMarker, error)
 	// List 同时服务「按项目」与「按录音」两个接口，复用同一 service 方法。
 	List(projectID, recordingID uint) ([]model.TimelineMarker, error)
+	GroupByRecording(projectID uint) (map[uint]map[int]model.TimelineMarker, error)
 	Update(actor *model.User, id uint, req *dto.UpdateTimelineMarkerRequest) (*model.TimelineMarker, error)
 	Delete(actor *model.User, id uint) error
 }
@@ -113,4 +114,19 @@ func (s *timelineMarkerService) Delete(actor *model.User, id uint) error {
 	}
 	s.logger.Info(fmt.Sprintf(constants.LogMarkerDelete, actor.Username, id))
 	return nil
+}
+// GroupByRecording 按录音聚合时间轴节点（供时间轴面板使用）。
+func (s *timelineMarkerService) GroupByRecording(projectID uint) (map[uint]map[int]model.TimelineMarker, error) {
+	markers, err := s.markerRepo.ListByProject(projectID)
+	if err != nil {
+		return nil, util.NewAppError(constants.CodeInternal, "时间轴节点查询失败", err)
+	}
+	grouped := map[uint]map[int]model.TimelineMarker{}
+	for _, m := range markers {
+		grouped[m.RecordingID][m.TimestampSecond] = m
+	}
+	if len(grouped) == 0 {
+		return nil, nil
+	}
+	return grouped, nil
 }

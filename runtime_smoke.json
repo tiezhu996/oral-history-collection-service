@@ -1,0 +1,25 @@
+{
+  "mode": "service",
+  "start": "go run ./cmd/server",
+  "workdir": "backend",
+  "env": {
+    "SERVER_PORT": "18080",
+    "RUN_MODE": "release",
+    "DB_HOST": "127.0.0.1",
+    "DB_PORT": "10180",
+    "DB_NAME": "oralhistory_db",
+    "DB_USER": "oralhistory_user",
+    "DB_PASSWORD": "oralhistory_pwd",
+    "JWT_SECRET": "test_secret_for_runtime_smoke",
+    "JWT_EXPIRE_HOURS": "72",
+    "REDIS_ADDR": "127.0.0.1:46323",
+    "MINIO_ENDPOINT": "127.0.0.1:47026",
+    "MINIO_ACCESS_KEY": "minioadmin",
+    "MINIO_SECRET_KEY": "minioadmin123",
+    "MINIO_BUCKET": "oralhistory-audio",
+    "MINIO_USE_SSL": "false"
+  },
+  "ready_url": "http://127.0.0.1:18080/healthz",
+  "ready_status": [200],
+  "startup_timeout": 30
+}

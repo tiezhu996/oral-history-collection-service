@@ -9,6 +9,7 @@ import (
 	"github.com/oralhistory/oralhistory/internal/constants"
 	"github.com/oralhistory/oralhistory/internal/dto"
 	"github.com/oralhistory/oralhistory/internal/middleware"
+	"github.com/oralhistory/oralhistory/internal/model"
 	"github.com/oralhistory/oralhistory/internal/service"
 	"github.com/oralhistory/oralhistory/internal/util"
 )
@@ -114,4 +115,22 @@ func (h *TimelineMarkerHandler) Delete(c *gin.Context) {
 	h.auditSvc.Record(actor.ID, actor.Username, actor.Role, "marker.delete", "timeline_marker", id,
 		"删除时间轴节点", c.ClientIP(), middleware.RequestID(c))
 	util.OKMessage(c, constants.MsgMarkerDeleted, nil)
+}
+
+// Group 按录音聚合时间轴节点。
+func (h *TimelineMarkerHandler) Group(c *gin.Context) {
+	projectID, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+	var grouped map[uint]map[int]model.TimelineMarker
+	grouped, err := h.markerSvc.GroupByRecording(projectID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if len(grouped) == 0 {
+		grouped = nil
+	}
+	util.OK(c, grouped)
 }
