@@ -23,6 +23,7 @@ type RecordingService interface {
 	AttachAudio(actor *model.User, id uint, audioKey string, duration int) (*model.Recording, error)
 	Delete(actor *model.User, id uint) error
 	CountByProject(projectID uint) (int64, error)
+	Retry(actor *model.User, id uint) (*model.Recording, error)
 }
 
 type recordingService struct {
@@ -151,8 +152,8 @@ func (s *recordingService) AttachAudio(actor *model.User, id uint, audioKey stri
 	if duration > 0 {
 		recording.DurationSeconds = duration
 	}
-	if recording.Status == constants.RecordingStatusRecording || recording.Status == constants.RecordingStatusProcessing {
-		recording.Status = constants.RecordingStatusReady
+	if recording.Status == constants.RecordingStatusRecording || recording.Status == constants.RecordingStatusProcessing || recording.Status == constants.RecordingStatusRetrying {
+		recording.Status = constants.RecordingStatusProcessing
 	}
 	if err := s.recordingRepo.Update(recording); err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, fmt.Sprintf("录音 %d 音频关联失败", id), err)
@@ -177,4 +178,17 @@ func (s *recordingService) Delete(actor *model.User, id uint) error {
 
 func (s *recordingService) CountByProject(projectID uint) (int64, error) {
 	return s.recordingRepo.CountByProject(projectID)
+}
+
+// Retry 将失败录音重新入队。
+func (s *recordingService) Retry(actor *model.User, id uint) (*model.Recording, error) {
+	recording, err := s.recordingRepo.FindByID(id)
+	if err != nil {
+		return nil, util.NewAppError(constants.CodeNotFound, fmt.Sprintf("录音 %d 不存在", id), err)
+	}
+	recording.Status = constants.RecordingStatusProcessing
+	if err := s.recordingRepo.Update(recording); err != nil {
+		return nil, util.NewAppError(constants.CodeInternal, fmt.Sprintf("录音 %d 重试失败", id), err)
+	}
+	return recording, nil
 }
