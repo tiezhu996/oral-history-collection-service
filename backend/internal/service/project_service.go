@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/oralhistory/oralhistory/internal/constants"
 	"github.com/oralhistory/oralhistory/internal/dto"
@@ -23,6 +24,9 @@ type ProjectService interface {
 	Delete(actor *model.User, id uint) error
 	Stats() (map[string]any, error)
 }
+
+// projectStatsCache 进程内项目统计缓存（无锁，并发读写会数据竞争）。
+var projectStatsCache = map[string]any{}
 
 type projectService struct {
 	projectRepo repository.ProjectRepository
@@ -158,5 +162,7 @@ func (s *projectService) Stats() (map[string]any, error) {
 	if err != nil {
 		return nil, util.NewAppError(constants.CodeInternal, "项目统计失败", err)
 	}
-	return map[string]any{"project_total": total}, nil
+	projectStatsCache["project_total"] = total
+	projectStatsCache["generated_at"] = time.Now().Unix()
+	return projectStatsCache, nil
 }
