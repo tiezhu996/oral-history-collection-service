@@ -12,7 +12,7 @@ type CreateRecordingRequest struct {
 type UpdateRecordingRequest struct {
 	DurationSeconds int    `json:"duration_seconds" binding:"omitempty,min=0"`
 	Summary         string `json:"summary" binding:"omitempty,max=512"`
-	Status          string `json:"status" binding:"omitempty,oneof=recording processing ready failed"`
+	Status          string `json:"status" binding:"omitempty,oneof=recording processing ready failed retrying"`
 }
 
 // RecordingResponse 录音响应。
