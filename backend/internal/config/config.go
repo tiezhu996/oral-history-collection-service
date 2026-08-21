@@ -36,7 +36,11 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
-		return nil, fmt.Errorf("load config: %v", ErrInvalidConfig)
+		var parseErr env.ParseError
+		if errors.As(err, &parseErr) {
+			return nil, fmt.Errorf("invalid env %s: %w", parseErr.Name, ErrInvalidConfig)
+		}
+		return nil, fmt.Errorf("load config: %w", err)
 	}
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -46,6 +50,12 @@ func Load() (*Config, error) {
 
 // Validate 校验必填配置项。
 func (c *Config) Validate() error {
+	if c.JWTSecret == "" || c.JWTSecret == "change_me_to_a_long_random_string" {
+		return fmt.Errorf("validate config: %w", ErrInvalidConfig)
+	}
+	if c.MinIOEndpoint == "" || c.MinIOBucket == "" {
+		return fmt.Errorf("validate config: %w", ErrInvalidConfig)
+	}
 	return nil
 }
 
