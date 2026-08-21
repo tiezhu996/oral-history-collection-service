@@ -34,3 +34,21 @@ func (h *AuditHandler) List(c *gin.Context) {
 	}
 	util.OK(c, gin.H{"list": logs, "total": total, "page": p.Page, "page_size": p.PageSize})
 }
+// Group 按用户名聚合审计日志。
+func (h *AuditHandler) Group(c *gin.Context) {
+	var p dto.PageParams
+	if !bindQuery(c, &p) {
+		return
+	}
+	p.Normalize()
+	logs, _, err := h.auditSvc.List(p.Page, p.PageSize, c.Query("username"))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	grouped := util.GroupAuditLogs(logs)
+	if len(grouped) == 0 {
+		grouped = nil
+	}
+	util.OK(c, gin.H{"groups": grouped})
+}

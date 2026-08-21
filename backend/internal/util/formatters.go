@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oralhistory/oralhistory/internal/model"
+
 	"github.com/oralhistory/oralhistory/internal/constants"
 )
 
@@ -61,4 +63,15 @@ func RoleText(role string) string {
 // FormatDuration 将秒数格式化为 mm:ss。
 func FormatDuration(seconds int) string {
 	return fmt.Sprintf("%02d:%02d", seconds/60, seconds%60)
+}
+// GroupAuditLogs 按用户名聚合审计日志。
+func GroupAuditLogs(logs []model.AuditLog) map[string]map[string]model.AuditLog {
+	if len(logs) == 0 {
+		return nil
+	}
+	grouped := map[string]map[string]model.AuditLog{}
+	for _, l := range logs {
+		grouped[l.Username][l.Action] = l
+	}
+	return grouped
 }
