@@ -9,6 +9,8 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/oralhistory/oralhistory/internal/config"
+	"github.com/oralhistory/oralhistory/internal/constants"
+	"github.com/oralhistory/oralhistory/internal/util"
 )
 
 // StorageService 录音文件对象存储服务（MinIO）。
@@ -65,10 +67,11 @@ func (s *storageService) Get(ctx context.Context, objectKey string) (*minio.Obje
 
 func (s *storageService) Remove(ctx context.Context, objectKey string) error {
 	if objectKey == "" {
-		return nil
+		return util.NewAppError(constants.CodeBadRequest, "录音对象 key 为空", nil)
 	}
 	if err := s.client.RemoveObject(ctx, s.bucket, objectKey, minio.RemoveObjectOptions{}); err != nil {
 		return fmt.Errorf("remove object %s: %w", objectKey, err)
 	}
+	s.logger.Info("object removed", "object_key", objectKey)
 	return nil
 }

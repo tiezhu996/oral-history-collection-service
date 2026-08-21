@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
 	"io"
 	"log/slog"
 	"net/http"
@@ -173,6 +174,14 @@ func (h *RecordingHandler) UploadAudio(c *gin.Context) {
 	duration, _ := strconv.Atoi(c.PostForm("duration_seconds"))
 	recording, err := h.recordingSvc.AttachAudio(actor, id, objectKey, duration)
 	if err != nil {
+		cleanupCtx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		defer cancel()
+		if rmErr := h.storageSvc.Remove(cleanupCtx, objectKey); rmErr != nil {
+			h.logger.Error("cleanup uploaded audio failed", "recording_id", id, "object_key", objectKey, "error", rmErr)
+		} else {
+			h.logger.Warn("uploaded audio cleaned after attach failure", "recording_id", id, "object_key", objectKey)
+			h.logger.Info("orphan audio reclaimed", "recording_id", id)
+		}
 		c.Error(err)
 		return
 	}
@@ -196,7 +205,7 @@ func (h *RecordingHandler) PlayAudio(c *gin.Context) {
 		util.Fail(c, http.StatusNotFound, constants.CodeNotFound, fmt.Sprintf("录音 %d 尚无音频文件", id))
 		return
 	}
-	obj, err := h.storageSvc.Get(context.Background(), recording.AudioKey)
+	obj, err := h.storageSvc.Get(c.Request.Context(), recording.AudioKey)
 	if err != nil {
 		h.logger.Error("get audio failed", "recording_id", id, "error", err)
 		util.Fail(c, http.StatusInternalServerError, constants.CodeInternal, fmt.Sprintf("录音 %d 音频读取失败", id))
@@ -206,7 +215,9 @@ func (h *RecordingHandler) PlayAudio(c *gin.Context) {
 	c.Header("Content-Type", "audio/webm")
 	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=recording_%d.webm", id))
 	c.Status(http.StatusOK)
-	_, _ = io.Copy(c.Writer, obj)
+	if _, err := io.Copy(c.Writer, obj); err != nil {
+		h.logger.Error("stream audio failed", "recording_id", id, "error", err)
+	}
 }
 
 // Delete 删除录音。
