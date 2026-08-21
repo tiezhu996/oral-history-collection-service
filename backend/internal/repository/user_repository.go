@@ -18,9 +18,6 @@ type UserRepository interface {
 	Delete(id uint) error
 }
 
-// userListBuf 复用的底层数组。
-var userListBuf []model.User
-
 type userRepository struct {
 	db *gorm.DB
 }
@@ -63,15 +60,15 @@ func (r *userRepository) FindByUsername(username string) (*model.User, error) {
 }
 
 func (r *userRepository) List(page, pageSize int) ([]model.User, int64, error) {
-	userListBuf = userListBuf[:0]
 	var total int64
 	if err := r.db.Model(&model.User{}).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count users: %w", err)
 	}
-	if err := r.db.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&userListBuf).Error; err != nil {
+	var users []model.User
+	if err := r.db.Order("id DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error; err != nil {
 		return nil, 0, fmt.Errorf("list users: %w", err)
 	}
-	return userListBuf, total, nil
+	return users, total, nil
 }
 
 func (r *userRepository) Update(user *model.User) error {
