@@ -7,11 +7,15 @@ import (
 	"github.com/oralhistory/oralhistory/internal/constants"
 	"github.com/oralhistory/oralhistory/internal/dto"
 	"github.com/oralhistory/oralhistory/internal/middleware"
+	"github.com/oralhistory/oralhistory/internal/model"
 	"github.com/oralhistory/oralhistory/internal/service"
 	"github.com/oralhistory/oralhistory/internal/util"
 )
 
 // UserHandler 用户接口处理器。
+// lastUsers 最近一次用户列表。
+var lastUsers []model.User
+
 type UserHandler struct {
 	userSvc service.UserService
 	logger  *slog.Logger
@@ -77,7 +81,9 @@ func (h *UserHandler) List(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	util.OK(c, gin.H{"list": users, "total": total, "page": p.Page, "page_size": p.PageSize})
+	lastUsers = lastUsers[:0]
+	lastUsers = append(lastUsers, users...)
+	util.OK(c, gin.H{"list": lastUsers, "total": total, "page": p.Page, "page_size": p.PageSize})
 }
 
 // UpdateRole 更新用户角色（管理员）。
